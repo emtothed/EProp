@@ -9,7 +9,11 @@ import {console} from "forge-std/console.sol";
 /**
  * @title EProp
  * @author Mohammad Asadi
- * @dev Implements a ERC721-based property ownership contract with its token and marketplace features.
+ * @dev Implements a ERC721-based property ownership contract with its token and marketplace features such as:
+ * - Allowing the owner of the token to list and unlist the token for sale
+ * - Allowing the owner of the token to set an address as a buyer with a cerain price
+ * - Allowing users to make an offer for a token
+ * - Allowing the owner of the token to put the token up for auction
  */
 contract EProp is ERC721 {
     // A struct for maintaining property specifications
@@ -92,7 +96,7 @@ contract EProp is ERC721 {
         s_imageUri = imageUri;
     }
 
-    //  ------------------------ Token functions ------------------------
+    //  ========================= Token functions =========================
 
     /**
      * @notice This function is originally usable only by the owner of the contract
@@ -173,7 +177,7 @@ contract EProp is ERC721 {
             );
     }
 
-    //  ------------------------ Sale functions ------------------------
+    //  ========================= Sale functions =========================
 
     /**
      * @dev Allows the token owner to list 'tokenId' token for sale with a 'price' as its price.
@@ -299,7 +303,7 @@ contract EProp is ERC721 {
         }
     }
 
-    //  ------------------------ Auction functions ------------------------
+    //  ========================= Auction functions =========================
 
     /**
      * @dev Allows the owner of 'tokenId' token to put the token up for auction
@@ -463,7 +467,7 @@ contract EProp is ERC721 {
         }
     }
 
-    //  ------------------------  Getter functions  ------------------------
+    //  =========================  Getter functions  =========================
 
     /**
      * @dev Returns the price of the 'tokenId' token to the buyer, owner, or everyone if the token is listed.
@@ -483,7 +487,7 @@ contract EProp is ERC721 {
     }
 
     /**
-     * @dev Returns the address of defined buyer to the owner of 'tokenId' token.
+     * @dev Returns the address of the defined buyer to the owner of 'tokenId' token.
      */
     function getBuyer(
         uint256 tokenId
