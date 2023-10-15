@@ -51,7 +51,7 @@ contract EPropTest is Test {
         eProp.listTokenForSale(0, SELL_PRICE);
 
         vm.prank(USER);
-        vm.expectRevert(EProp.alreadyOnSaleOrInAuction.selector);
+        vm.expectRevert(EProp.EProp__AlreadyOnSaleOrInAuction.selector);
         eProp.listTokenForSale(0, SELL_PRICE);
 
         assert(eProp.tokenIdToIsListed(0));
@@ -91,11 +91,11 @@ contract EPropTest is Test {
         vm.prank(USER);
         eProp.openAuction(0, SELL_PRICE);
 
-        vm.expectRevert(EProp.alreadyOnSaleOrInAuction.selector);
+        vm.expectRevert(EProp.EProp__AlreadyOnSaleOrInAuction.selector);
         vm.prank(USER);
         eProp.submitBuyer(USER2, 0, SELL_PRICE);
 
-        vm.expectRevert(EProp.alreadyOnSaleOrInAuction.selector);
+        vm.expectRevert(EProp.EProp__AlreadyOnSaleOrInAuction.selector);
         vm.prank(USER);
         eProp.listTokenForSale(0, SELL_PRICE);
     }
@@ -103,7 +103,7 @@ contract EPropTest is Test {
     function testSubmitBuyerRevertWhenNotTokenOwner() public {
         eProp.mintProp(USER, 44, 65, 1, 1, 0);
 
-        vm.expectRevert(EProp.notTokenOwnerOrApproved.selector);
+        vm.expectRevert(EProp.EProp__NotTokenOwnerOrApproved.selector);
         eProp.submitBuyer(USER2, 0, SELL_PRICE);
     }
 
@@ -114,14 +114,14 @@ contract EPropTest is Test {
         eProp.submitBuyer(USER2, 0, SELL_PRICE);
 
         vm.prank(USER);
-        vm.expectRevert(EProp.alreadyOnSaleOrInAuction.selector);
+        vm.expectRevert(EProp.EProp__AlreadyOnSaleOrInAuction.selector);
         eProp.submitBuyer(USER2, 0, SELL_PRICE);
     }
 
     function testSubmitBuyerRevertWhenBuyerIsOwner() public {
         eProp.mintProp(USER, 44, 65, 1, 1, 0);
 
-        vm.expectRevert(EProp.wrongTokenIdEntered.selector);
+        vm.expectRevert(EProp.EProp__WrongTokenIdEntered.selector);
         vm.prank(USER);
         eProp.submitBuyer(USER, 0, SELL_PRICE);
     }
@@ -158,7 +158,7 @@ contract EPropTest is Test {
     function testCancelSaleRevertWhenNotOnSale() public {
         eProp.mintProp(USER, 44, 65, 1, 1, 0);
 
-        vm.expectRevert(EProp.tokenNotOnSaleOrListed.selector);
+        vm.expectRevert(EProp.EProp__TokenNotOnSaleOrListed.selector);
         vm.prank(USER);
         eProp.cancelSaleOrUnlist(0);
     }
@@ -170,7 +170,9 @@ contract EPropTest is Test {
         eProp.submitBuyer(USER2, 0, SELL_PRICE);
 
         hoax(address(3), 2 ether);
-        vm.expectRevert(EProp.tokenNotForSaleForThisAddressOrListed.selector);
+        vm.expectRevert(
+            EProp.EProp__TokenNotForSaleForThisAddressOrListed.selector
+        );
         eProp.payForToken{value: SELL_PRICE}(0);
     }
 
@@ -181,7 +183,9 @@ contract EPropTest is Test {
         vm.prank(USER);
         eProp.submitBuyer(USER2, 0, SELL_PRICE);
 
-        vm.expectRevert(EProp.tokenNotForSaleForThisAddressOrListed.selector);
+        vm.expectRevert(
+            EProp.EProp__TokenNotForSaleForThisAddressOrListed.selector
+        );
         hoax(USER2, 2 ether);
         eProp.payForToken{value: SELL_PRICE}(1);
     }
@@ -192,7 +196,7 @@ contract EPropTest is Test {
         vm.prank(USER);
         eProp.submitBuyer(USER2, 0, SELL_PRICE);
 
-        vm.expectRevert(EProp.paidAmountIsNotEnough.selector);
+        vm.expectRevert(EProp.EProp__PaidAmountIsNotEnough.selector);
         hoax(USER2, 2 ether);
         eProp.payForToken{value: SELL_PRICE - 1000}(0);
     }
@@ -221,13 +225,13 @@ contract EPropTest is Test {
         eProp.listTokenForSale(0, SELL_PRICE);
 
         vm.prank(USER2);
-        vm.expectRevert(EProp.tokenAlreadyInSaleOrAuction.selector);
+        vm.expectRevert(EProp.EProp__TokenAlreadyInSaleOrAuction.selector);
         eProp.makeOffer(0, 1 ether);
     }
 
     function testMakeOfferRevertWhenTokenNotExist() public {
         vm.prank(USER2);
-        vm.expectRevert(EProp.wrongTokenIdEntered.selector);
+        vm.expectRevert(EProp.EProp__WrongTokenIdEntered.selector);
         eProp.makeOffer(0, 1 ether);
     }
 
@@ -237,7 +241,7 @@ contract EPropTest is Test {
         eProp.listTokenForSale(0, SELL_PRICE);
 
         vm.prank(USER);
-        vm.expectRevert(EProp.wrongTokenIdEntered.selector);
+        vm.expectRevert(EProp.EProp__WrongTokenIdEntered.selector);
         eProp.makeOffer(0, 1 ether);
     }
 
@@ -247,7 +251,7 @@ contract EPropTest is Test {
         vm.prank(USER2);
         eProp.makeOffer(0, 1 ether);
 
-        vm.expectRevert(EProp.notTokenOwnerOrApproved.selector);
+        vm.expectRevert(EProp.EProp__NotTokenOwnerOrApproved.selector);
         vm.prank(USER2);
         eProp.acceptOffer(0, 0);
 
@@ -270,7 +274,9 @@ contract EPropTest is Test {
         vm.prank(USER);
         eProp.submitBuyer(USER2, 0, SELL_PRICE);
 
-        vm.expectRevert(EProp.tokenNotForSaleForThisAddressOrListed.selector);
+        vm.expectRevert(
+            EProp.EProp__TokenNotForSaleForThisAddressOrListed.selector
+        );
         eProp.getTokenPrice(0);
     }
 
@@ -289,7 +295,7 @@ contract EPropTest is Test {
         eProp.mintProp(USER, 44, 65, 1, 1, 0);
 
         vm.prank(USER2);
-        vm.expectRevert(EProp.notTokenOwnerOrApproved.selector);
+        vm.expectRevert(EProp.EProp__NotTokenOwnerOrApproved.selector);
         eProp.openAuction(0, SELL_PRICE);
     }
 
@@ -300,7 +306,7 @@ contract EPropTest is Test {
         eProp.openAuction(0, SELL_PRICE);
 
         vm.prank(USER);
-        vm.expectRevert(EProp.alreadyOnSaleOrInAuction.selector);
+        vm.expectRevert(EProp.EProp__AlreadyOnSaleOrInAuction.selector);
         eProp.openAuction(0, SELL_PRICE);
     }
 
@@ -311,7 +317,7 @@ contract EPropTest is Test {
         eProp.listTokenForSale(0, SELL_PRICE);
 
         vm.prank(USER);
-        vm.expectRevert(EProp.alreadyOnSaleOrInAuction.selector);
+        vm.expectRevert(EProp.EProp__AlreadyOnSaleOrInAuction.selector);
         eProp.openAuction(0, SELL_PRICE);
     }
 
@@ -358,7 +364,7 @@ contract EPropTest is Test {
     function testMakeBidRevertWhenAuctionisClosed() public {
         eProp.mintProp(USER, 44, 65, 1, 1, 0);
 
-        vm.expectRevert(EProp.noOpenAuctionForThisToken.selector);
+        vm.expectRevert(EProp.EProp__NoOpenAuctionForThisToken.selector);
         hoax(USER2, bidAmount);
         eProp.makeBid{value: (bidAmount / 10)}(0, bidAmount);
     }
@@ -368,7 +374,7 @@ contract EPropTest is Test {
         vm.prank(USER);
         eProp.openAuction(0, SELL_PRICE);
 
-        vm.expectRevert(EProp.paidLessThanRequiredForBidAmount.selector);
+        vm.expectRevert(EProp.EProp__PaidLessThanRequiredForBidAmount.selector);
         hoax(USER2, bidAmount);
         eProp.makeBid{value: (bidAmount / 200)}(0, bidAmount);
     }
@@ -378,7 +384,7 @@ contract EPropTest is Test {
         vm.prank(USER);
         eProp.openAuction(0, SELL_PRICE);
 
-        vm.expectRevert(EProp.bidedLessThanHighestBid.selector);
+        vm.expectRevert(EProp.EProp__BidedLessThanHighestBid.selector);
         hoax(USER2, bidAmount);
         eProp.makeBid{value: (bidAmount / 100)}(0, SELL_PRICE);
     }
@@ -388,7 +394,7 @@ contract EPropTest is Test {
         vm.prank(USER);
         eProp.openAuction(0, SELL_PRICE);
 
-        vm.expectRevert(EProp.wrongTokenIdEntered.selector);
+        vm.expectRevert(EProp.EProp__WrongTokenIdEntered.selector);
         hoax(USER, bidAmount);
         eProp.makeBid{value: (bidAmount / 100)}(0, bidAmount);
     }
@@ -428,7 +434,7 @@ contract EPropTest is Test {
     function testCloseAuctionRevertWhenAuctionNotOpen() public {
         eProp.mintProp(USER, 44, 65, 1, 1, 0);
 
-        vm.expectRevert(EProp.noOpenAuctionForThisToken.selector);
+        vm.expectRevert(EProp.EProp__NoOpenAuctionForThisToken.selector);
         vm.prank(USER);
         eProp.closeAuction(0);
 
@@ -439,7 +445,7 @@ contract EPropTest is Test {
         vm.prank(USER);
         eProp.closeAuction(0);
 
-        vm.expectRevert(EProp.noOpenAuctionForThisToken.selector);
+        vm.expectRevert(EProp.EProp__NoOpenAuctionForThisToken.selector);
         vm.prank(USER);
         eProp.closeAuction(0);
     }
@@ -476,14 +482,14 @@ contract EPropTest is Test {
     function testCancelAuctionWhenAuctionNotOnPending() public {
         eProp.mintProp(USER, 44, 65, 1, 1, 0);
 
-        vm.expectRevert(EProp.noOnPendingAuctionForThisToken.selector);
+        vm.expectRevert(EProp.EProp__NoOnPendingAuctionForThisToken.selector);
         vm.prank(USER);
         eProp.cancelAuction(0);
 
         vm.prank(USER);
         eProp.openAuction(0, SELL_PRICE);
 
-        vm.expectRevert(EProp.noOnPendingAuctionForThisToken.selector);
+        vm.expectRevert(EProp.EProp__NoOnPendingAuctionForThisToken.selector);
         vm.prank(USER);
         eProp.cancelAuction(0);
     }
@@ -497,7 +503,7 @@ contract EPropTest is Test {
         vm.prank(USER);
         eProp.closeAuction(0);
 
-        vm.expectRevert(EProp.sevenDaysNotPassed.selector);
+        vm.expectRevert(EProp.EProp__SevenDaysNotPassed.selector);
         vm.prank(USER);
         eProp.cancelAuction(0);
     }
@@ -546,7 +552,7 @@ contract EPropTest is Test {
         eProp.closeAuction(0);
 
         //Assertion
-        vm.expectRevert(EProp.notAuctionWinner.selector);
+        vm.expectRevert(EProp.EProp__NotAuctionWinner.selector);
         vm.prank(USER2);
         eProp.payForTokenInAuction{value: bidAmount - bidAmount / 100}(0);
     }
@@ -562,7 +568,7 @@ contract EPropTest is Test {
         eProp.closeAuction(0);
 
         //Assertion
-        vm.expectRevert(EProp.paidAmountIsNotEnough.selector);
+        vm.expectRevert(EProp.EProp__PaidAmountIsNotEnough.selector);
         vm.prank(USER2);
         eProp.payForTokenInAuction{value: bidAmount / 100}(0);
     }
@@ -599,7 +605,7 @@ contract EPropTest is Test {
     function testCancelBidRevertWhenAuctionNotOpen() public {
         eProp.mintProp(USER, 44, 65, 1, 1, 0);
 
-        vm.expectRevert(EProp.noOpenAuctionForThisToken.selector);
+        vm.expectRevert(EProp.EProp__NoOpenAuctionForThisToken.selector);
         vm.prank(USER2);
         eProp.cancelBid(0);
 
@@ -610,7 +616,7 @@ contract EPropTest is Test {
         vm.prank(USER);
         eProp.closeAuction(0);
 
-        vm.expectRevert(EProp.noOpenAuctionForThisToken.selector);
+        vm.expectRevert(EProp.EProp__NoOpenAuctionForThisToken.selector);
         vm.prank(USER2);
         eProp.cancelBid(0);
     }
@@ -620,14 +626,14 @@ contract EPropTest is Test {
         vm.prank(USER);
         eProp.openAuction(0, SELL_PRICE);
 
-        vm.expectRevert(EProp.notAuctionWinner.selector);
+        vm.expectRevert(EProp.EProp__NotAuctionWinner.selector);
         vm.prank(address(3));
         eProp.cancelBid(0);
 
         hoax(USER2, bidAmount);
         eProp.makeBid{value: (bidAmount / 100)}(0, bidAmount);
 
-        vm.expectRevert(EProp.notAuctionWinner.selector);
+        vm.expectRevert(EProp.EProp__NotAuctionWinner.selector);
         vm.prank(address(3));
         eProp.cancelBid(0);
     }
@@ -640,7 +646,7 @@ contract EPropTest is Test {
         hoax(USER2, bidAmount);
         eProp.makeBid{value: (bidAmount / 100)}(0, bidAmount);
 
-        vm.expectRevert(EProp.sevenDaysNotPassed.selector);
+        vm.expectRevert(EProp.EProp__SevenDaysNotPassed.selector);
         vm.prank(USER2);
         eProp.cancelBid(0);
     }
