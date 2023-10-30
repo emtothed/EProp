@@ -4,6 +4,7 @@ pragma solidity ^0.8.18;
 import {ERC721} from "@OpenZeppelin/contracts/token/ERC721/ERC721.sol";
 import {Base64} from "@OpenZeppelin/contracts/utils/Base64.sol";
 import {Strings} from "@OpenZeppelin/contracts/utils/Strings.sol";
+import {ReentrancyGuard} from "@OpenZeppelin/contracts/security/ReentrancyGuard.sol";
 import {console} from "forge-std/console.sol";
 
 /**
@@ -15,9 +16,10 @@ import {console} from "forge-std/console.sol";
  * - Allowing users to make an offer for a token
  * - Allowing the owner of the token to put the token up for auction
  */
-contract EProp is ERC721 {
+contract EProp is ERC721, ReentrancyGuard {
     // A struct for maintaining property specifications
     using Strings for uint256;
+
     struct PropSpec {
         uint256 length;
         uint256 width;
@@ -84,6 +86,7 @@ contract EProp is ERC721 {
         }
         _;
     }
+
     modifier onlyTokenOwner(uint256 tokenId) {
         if (!_isApprovedOrOwner(msg.sender, tokenId)) {
             revert EProp__NotTokenOwnerOrApproved();
@@ -109,22 +112,11 @@ contract EProp is ERC721 {
      * @param y Geographical location of the property.
      * @param propType property type e.g. LAND.
      */
-    function mintProp(
-        address propOwner,
-        uint256 length,
-        uint256 width,
-        uint256 x,
-        uint256 y,
-        uint8 propType
-    ) public /*onlyOwner*/ {
+    function mintProp(address propOwner, uint256 length, uint256 width, uint256 x, uint256 y, uint8 propType)
+        public /*onlyOwner*/
+    {
         _safeMint(propOwner, s_tokenCounter);
-        PropSpec memory propSpec = PropSpec(
-            length,
-            width,
-            x,
-            y,
-            PropType(propType)
-        );
+        PropSpec memory propSpec = PropSpec(length, width, x, y, PropType(propType));
         tokenIdToSpec[s_tokenCounter] = propSpec;
         console.log("EProp Minted with tokenID: ", s_tokenCounter);
         s_tokenCounter++;
@@ -137,44 +129,36 @@ contract EProp is ERC721 {
     /**
      * @dev Returns the URI of the 'tokenId' token.
      */
-    function tokenURI(
-        uint256 tokenId
-    ) public view override returns (string memory) {
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
         string memory length = Strings.toString(tokenIdToSpec[tokenId].length);
         string memory width = Strings.toString(tokenIdToSpec[tokenId].width);
-        string memory location = string.concat(
-            Strings.toString(tokenIdToSpec[tokenId].x),
-            " , ",
-            Strings.toString(tokenIdToSpec[tokenId].y)
-        );
-        string memory propType = propTypeToString(
-            tokenIdToSpec[tokenId].propType
-        );
-        return
-            string(
-                abi.encodePacked(
-                    _baseURI(),
-                    Base64.encode(
-                        bytes(
-                            abi.encodePacked(
-                                '{"name":"',
-                                name(),
-                                '","description":"EProp is a decentralized property ownership system.","attributes":[{"Length":"',
-                                length,
-                                '","Width":"',
-                                width,
-                                '","Location":"',
-                                location,
-                                '","Property type":"',
-                                propType,
-                                '"}],"image":"',
-                                s_imageUri,
-                                '"}'
-                            )
+        string memory location =
+            string.concat(Strings.toString(tokenIdToSpec[tokenId].x), " , ", Strings.toString(tokenIdToSpec[tokenId].y));
+        string memory propType = propTypeToString(tokenIdToSpec[tokenId].propType);
+        return string(
+            abi.encodePacked(
+                _baseURI(),
+                Base64.encode(
+                    bytes(
+                        abi.encodePacked(
+                            '{"name":"',
+                            name(),
+                            '","description":"EProp is a decentralized property ownership system.","attributes":[{"Length":"',
+                            length,
+                            '","Width":"',
+                            width,
+                            '","Location":"',
+                            location,
+                            '","Property type":"',
+                            propType,
+                            '"}],"image":"',
+                            s_imageUri,
+                            '"}'
                         )
                     )
                 )
-            );
+            )
+        );
     }
 
     //  ========================= Sale functions =========================
@@ -185,17 +169,11 @@ contract EProp is ERC721 {
      *  Requirements:
      * - The token should not be in auction.
      */
-    function listTokenForSale(
-        uint256 tokenId,
-        uint256 price
-    ) public onlyTokenOwner(tokenId) {
+    function listTokenForSale(uint256 tokenId, uint256 price) public onlyTokenOwner(tokenId) {
         if (!_exists(tokenId)) {
             revert EProp__WrongTokenIdEntered();
         }
-        if (
-            tokenIdToIsListed[tokenId] ||
-            tokenIdToAuctionState[tokenId] != AuctionState.CLOSED
-        ) {
+        if (tokenIdToIsListed[tokenId] || tokenIdToAuctionState[tokenId] != AuctionState.CLOSED) {
             revert EProp__AlreadyOnSaleOrInAuction();
         }
         tokenIdToIsListed[tokenId] = true;
@@ -208,18 +186,13 @@ contract EProp is ERC721 {
      *  Requirements:
      * - The token should not be listed or in auction.
      */
-    function submitBuyer(
-        address buyer,
-        uint256 tokenId,
-        uint256 price
-    ) public onlyTokenOwner(tokenId) {
+    function submitBuyer(address buyer, uint256 tokenId, uint256 price) public onlyTokenOwner(tokenId) {
         if (!_exists(tokenId) || buyer == msg.sender) {
             revert EProp__WrongTokenIdEntered();
         }
         if (
-            s_tokenIdToBuyer[tokenId] != address(0) ||
-            tokenIdToIsListed[tokenId] ||
-            tokenIdToAuctionState[tokenId] != AuctionState.CLOSED
+            s_tokenIdToBuyer[tokenId] != address(0) || tokenIdToIsListed[tokenId]
+                || tokenIdToAuctionState[tokenId] != AuctionState.CLOSED
         ) {
             revert EProp__AlreadyOnSaleOrInAuction();
         }
@@ -231,9 +204,7 @@ contract EProp is ERC721 {
     /**
      * @dev Allows the owner of 'tokenId' token to unlist or remove the defined buyer of the token.
      */
-    function cancelSaleOrUnlist(
-        uint256 tokenId
-    ) public onlyTokenOwner(tokenId) {
+    function cancelSaleOrUnlist(uint256 tokenId) public onlyTokenOwner(tokenId) {
         if (s_tokenIdToPrice[tokenId] == 0) {
             revert EProp__TokenNotOnSaleOrListed();
         }
@@ -248,14 +219,11 @@ contract EProp is ERC721 {
      * trasferd to the payer.
      */
     function payForToken(uint256 tokenId) public payable {
-        if (
-            s_tokenIdToBuyer[tokenId] == msg.sender ||
-            tokenIdToIsListed[tokenId]
-        ) {
+        if (s_tokenIdToBuyer[tokenId] == msg.sender || tokenIdToIsListed[tokenId]) {
             if (msg.value < s_tokenIdToPrice[tokenId]) {
                 revert EProp__PaidAmountIsNotEnough();
             }
-            (bool paid, ) = ownerOf(tokenId).call{value: msg.value}("");
+            (bool paid,) = ownerOf(tokenId).call{value: msg.value}("");
             if (paid) {
                 _safeTransfer(ownerOf(tokenId), msg.sender, tokenId, "");
                 delete s_tokenIdToBuyer[tokenId];
@@ -291,10 +259,7 @@ contract EProp is ERC721 {
      * @dev Allows the Owner of 'tokenId' token to accept an offer and
      * set the sender of the offer as buyer and 'offeredPrice' as price .
      */
-    function acceptOffer(
-        uint256 tokenId,
-        uint256 offerIndex
-    ) public onlyTokenOwner(tokenId) {
+    function acceptOffer(uint256 tokenId, uint256 offerIndex) public onlyTokenOwner(tokenId) {
         if (s_tokenIdToOffers[tokenId][offerIndex].sender != address(0)) {
             Offer memory offer = s_tokenIdToOffers[tokenId][offerIndex];
             submitBuyer(offer.sender, tokenId, offer.offerdAmount);
@@ -312,14 +277,8 @@ contract EProp is ERC721 {
      *   Requirements:
      * - The token should not be on sale.
      */
-    function openAuction(
-        uint256 tokenId,
-        uint256 startingPrice
-    ) public onlyTokenOwner(tokenId) {
-        if (
-            s_tokenIdToPrice[tokenId] != 0 ||
-            tokenIdToAuctionState[tokenId] != AuctionState.CLOSED
-        ) {
+    function openAuction(uint256 tokenId, uint256 startingPrice) public onlyTokenOwner(tokenId) {
+        if (s_tokenIdToPrice[tokenId] != 0 || tokenIdToAuctionState[tokenId] != AuctionState.CLOSED) {
             revert EProp__AlreadyOnSaleOrInAuction();
         } else {
             tokenIdToHighestBid[tokenId] = startingPrice;
@@ -332,7 +291,7 @@ contract EProp is ERC721 {
      * if there is a bidder, the prepayment amount is sent to the owner of the token and auction state is changed to 'PENDING'
      * otherwise,the variables related to the auction is set to default value and auction gets closed.
      */
-    function closeAuction(uint256 tokenId) public onlyTokenOwner(tokenId) {
+    function closeAuction(uint256 tokenId) public nonReentrant onlyTokenOwner(tokenId) {
         if (tokenIdToAuctionState[tokenId] != AuctionState.OPEN) {
             revert EProp__NoOpenAuctionForThisToken();
         }
@@ -340,9 +299,7 @@ contract EProp is ERC721 {
             delete tokenIdToAuctionState[tokenId];
             delete tokenIdToHighestBid[tokenId];
         } else {
-            (bool success, ) = msg.sender.call{
-                value: s_tokenIdToPrePaymentAmount[tokenId]
-            }("");
+            (bool success,) = msg.sender.call{value: s_tokenIdToPrePaymentAmount[tokenId]}("");
             if (!success) {
                 revert();
             }
@@ -379,7 +336,7 @@ contract EProp is ERC721 {
      * - The bid amount must not be less than the last highest bid amount.
      * - The bidder must send one percent of the bid amount as prepayment.
      */
-    function makeBid(uint256 tokenId, uint256 bidAmount) public payable {
+    function makeBid(uint256 tokenId, uint256 bidAmount) public payable nonReentrant {
         if (msg.sender == ownerOf(tokenId)) {
             revert EProp__WrongTokenIdEntered();
         }
@@ -393,9 +350,7 @@ contract EProp is ERC721 {
             revert EProp__BidedLessThanHighestBid();
         }
         if (s_tokenIdToLastBidder[tokenId] != address(0)) {
-            (bool success, ) = s_tokenIdToLastBidder[tokenId].call{
-                value: s_tokenIdToPrePaymentAmount[tokenId]
-            }("");
+            (bool success,) = s_tokenIdToLastBidder[tokenId].call{value: s_tokenIdToPrePaymentAmount[tokenId]}("");
             if (!success) {
                 revert();
             }
@@ -411,7 +366,7 @@ contract EProp is ERC721 {
      * when a week has passed since the bid date and the token owner does not close the auction.
      * then it sets the variables related to the auction to default values and closes the auction.
      */
-    function cancelBid(uint256 tokenId) public {
+    function cancelBid(uint256 tokenId) public nonReentrant {
         if (tokenIdToAuctionState[tokenId] != AuctionState.OPEN) {
             revert EProp__NoOpenAuctionForThisToken();
         }
@@ -419,9 +374,7 @@ contract EProp is ERC721 {
             revert EProp__NotAuctionWinner();
         }
         if (block.timestamp >= s_tokenIdTolastBidTime[tokenId] + 7 days) {
-            (bool success, ) = msg.sender.call{
-                value: s_tokenIdToPrePaymentAmount[tokenId]
-            }("");
+            (bool success,) = msg.sender.call{value: s_tokenIdToPrePaymentAmount[tokenId]}("");
             if (success) {
                 delete tokenIdToHighestBid[tokenId];
                 delete s_tokenIdToPrePaymentAmount[tokenId];
@@ -444,15 +397,11 @@ contract EProp is ERC721 {
         if (s_tokenIdToLastBidder[tokenId] != msg.sender) {
             revert EProp__NotAuctionWinner();
         }
-        if (
-            msg.value <
-            (tokenIdToHighestBid[tokenId] -
-                s_tokenIdToPrePaymentAmount[tokenId])
-        ) {
+        if (msg.value < (tokenIdToHighestBid[tokenId] - s_tokenIdToPrePaymentAmount[tokenId])) {
             revert EProp__PaidAmountIsNotEnough();
         }
 
-        (bool paid, ) = ownerOf(tokenId).call{value: msg.value}("");
+        (bool paid,) = ownerOf(tokenId).call{value: msg.value}("");
         if (paid) {
             _safeTransfer(ownerOf(tokenId), msg.sender, tokenId, "");
             delete tokenIdToHighestBid[tokenId];
@@ -472,14 +421,8 @@ contract EProp is ERC721 {
     /**
      * @dev Returns the price of the 'tokenId' token to the buyer, owner, or everyone if the token is listed.
      */
-    function getTokenPrice(
-        uint256 tokenId
-    ) external view returns (uint256 price) {
-        if (
-            s_tokenIdToBuyer[tokenId] == msg.sender ||
-            tokenIdToIsListed[tokenId] ||
-            msg.sender == ownerOf(tokenId)
-        ) {
+    function getTokenPrice(uint256 tokenId) external view returns (uint256 price) {
+        if (s_tokenIdToBuyer[tokenId] == msg.sender || tokenIdToIsListed[tokenId] || msg.sender == ownerOf(tokenId)) {
             price = s_tokenIdToPrice[tokenId];
         } else {
             revert EProp__TokenNotForSaleForThisAddressOrListed();
@@ -489,18 +432,14 @@ contract EProp is ERC721 {
     /**
      * @dev Returns the address of the defined buyer to the owner of 'tokenId' token.
      */
-    function getBuyer(
-        uint256 tokenId
-    ) external view onlyTokenOwner(tokenId) returns (address) {
+    function getBuyer(uint256 tokenId) external view onlyTokenOwner(tokenId) returns (address) {
         return s_tokenIdToBuyer[tokenId];
     }
 
     /**
      * @dev Returns the array of offers for the token to the owner of 'tokenId' token.
      */
-    function getOffers(
-        uint256 tokenId
-    ) external view onlyTokenOwner(tokenId) returns (Offer[] memory) {
+    function getOffers(uint256 tokenId) external view onlyTokenOwner(tokenId) returns (Offer[] memory) {
         return s_tokenIdToOffers[tokenId];
     }
 
@@ -514,21 +453,14 @@ contract EProp is ERC721 {
     /**
      * @dev Returns the last bidder address and the prepayment amount to the owner of 'tokenId' token.
      */
-    function getLatestBidInfo(
-        uint256 tokenId
-    ) external view onlyTokenOwner(tokenId) returns (address, uint256) {
-        return (
-            s_tokenIdToLastBidder[tokenId],
-            s_tokenIdToPrePaymentAmount[tokenId]
-        );
+    function getLatestBidInfo(uint256 tokenId) external view onlyTokenOwner(tokenId) returns (address, uint256) {
+        return (s_tokenIdToLastBidder[tokenId], s_tokenIdToPrePaymentAmount[tokenId]);
     }
 
     /**
      * @dev Returns the auction closing time to the owner of 'tokenId' token.
      */
-    function getCloseTime(
-        uint256 tokenId
-    ) external view onlyTokenOwner(tokenId) returns (uint256) {
+    function getCloseTime(uint256 tokenId) external view onlyTokenOwner(tokenId) returns (uint256) {
         return s_tokenIdToCloseTime[tokenId];
     }
 
@@ -546,9 +478,7 @@ contract EProp is ERC721 {
     /**
      * @dev Returns the propType converted to string.
      */
-    function propTypeToString(
-        PropType pT
-    ) internal pure returns (string memory) {
+    function propTypeToString(PropType pT) internal pure returns (string memory) {
         if (pT == PropType.APARTMENT) {
             return "APARTMENT";
         } else if (pT == PropType.HOUSE) {
