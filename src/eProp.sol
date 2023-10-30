@@ -10,7 +10,7 @@ import {console} from "forge-std/console.sol";
 /**
  * @title EProp
  * @author Mohammad Asadi
- * @dev Implements a ERC721-based property ownership contract with its token and marketplace features such as:
+ * @dev Implements a ERC721-based property ownership contract with its token and marketplace features such as :
  * - Allowing the owner of the token to list and unlist the token for sale
  * - Allowing the owner of the token to set an address as a buyer with a cerain price
  * - Allowing users to make an offer for a token
