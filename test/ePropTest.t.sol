@@ -12,6 +12,7 @@ contract EPropTest is Test {
         HOUSE,
         APARTMENT
     }
+
     DeployEProp public deployer;
     EProp public eProp;
     address public USER = makeAddr("User");
@@ -170,9 +171,7 @@ contract EPropTest is Test {
         eProp.submitBuyer(USER2, 0, SELL_PRICE);
 
         hoax(address(3), 2 ether);
-        vm.expectRevert(
-            EProp.EProp__TokenNotForSaleForThisAddressOrListed.selector
-        );
+        vm.expectRevert(EProp.EProp__TokenNotForSaleForThisAddressOrListed.selector);
         eProp.payForToken{value: SELL_PRICE}(0);
     }
 
@@ -183,9 +182,7 @@ contract EPropTest is Test {
         vm.prank(USER);
         eProp.submitBuyer(USER2, 0, SELL_PRICE);
 
-        vm.expectRevert(
-            EProp.EProp__TokenNotForSaleForThisAddressOrListed.selector
-        );
+        vm.expectRevert(EProp.EProp__TokenNotForSaleForThisAddressOrListed.selector);
         hoax(USER2, 2 ether);
         eProp.payForToken{value: SELL_PRICE}(1);
     }
@@ -274,9 +271,7 @@ contract EPropTest is Test {
         vm.prank(USER);
         eProp.submitBuyer(USER2, 0, SELL_PRICE);
 
-        vm.expectRevert(
-            EProp.EProp__TokenNotForSaleForThisAddressOrListed.selector
-        );
+        vm.expectRevert(EProp.EProp__TokenNotForSaleForThisAddressOrListed.selector);
         eProp.getTokenPrice(0);
     }
 
@@ -331,9 +326,7 @@ contract EPropTest is Test {
         eProp.makeBid{value: (bidAmount / 10)}(0, bidAmount);
 
         vm.prank(USER);
-        (address lastBidder, uint256 prePaymentAmount) = eProp.getLatestBidInfo(
-            0
-        );
+        (address lastBidder, uint256 prePaymentAmount) = eProp.getLatestBidInfo(0);
 
         assert(lastBidder == USER2);
         assert(prePaymentAmount == bidAmount / 10);
@@ -466,9 +459,7 @@ contract EPropTest is Test {
         eProp.cancelAuction(0);
 
         vm.prank(USER);
-        (address lastBidder, uint256 prePaymentAmount) = eProp.getLatestBidInfo(
-            0
-        );
+        (address lastBidder, uint256 prePaymentAmount) = eProp.getLatestBidInfo(0);
         vm.prank(USER);
         uint256 storedCloseTime = eProp.getCloseTime(0);
 
@@ -526,9 +517,7 @@ contract EPropTest is Test {
         vm.prank(USER2);
         uint256 storedCloseTime = eProp.getCloseTime(0);
         vm.prank(USER2);
-        (address lastBidder, uint256 prePaymentAmount) = eProp.getLatestBidInfo(
-            0
-        );
+        (address lastBidder, uint256 prePaymentAmount) = eProp.getLatestBidInfo(0);
 
         assert(eProp.ownerOf(0) == USER2);
         assert(USER.balance == bidAmount);
@@ -591,9 +580,7 @@ contract EPropTest is Test {
         vm.prank(USER);
         uint256 storedCloseTime = eProp.getCloseTime(0);
         vm.prank(USER);
-        (address lastBidder, uint256 prePaymentAmount) = eProp.getLatestBidInfo(
-            0
-        );
+        (address lastBidder, uint256 prePaymentAmount) = eProp.getLatestBidInfo(0);
         assert(USER2.balance == bidAmount);
         assert(eProp.tokenIdToHighestBid(0) == 0);
         assert(eProp.tokenIdToAuctionState(0) == EProp.AuctionState.CLOSED);
@@ -649,5 +636,20 @@ contract EPropTest is Test {
         vm.expectRevert(EProp.EProp__SevenDaysNotPassed.selector);
         vm.prank(USER2);
         eProp.cancelBid(0);
+    }
+
+    function testgetUsdPriceToWei() public view {
+        uint256 ethprice = eProp.getUsdPriceToWei(3000);
+        assert(ethprice == 1.5 ether);
+    }
+
+    function testgetTokenPriceToUsd() public {
+        eProp.mintProp(USER, 44, 65, 1, 1, 0);
+        vm.startPrank(USER);
+        eProp.listTokenForSale(0, SELL_PRICE);
+        uint256 usdPrice = eProp.getTokenPriceToUsd(0);
+        vm.stopPrank();
+
+        assertEq(usdPrice, 2000);
     }
 }

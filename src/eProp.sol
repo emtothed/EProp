@@ -3,6 +3,8 @@ pragma solidity ^0.8.18;
 
 import {ERC721} from "@OpenZeppelin/contracts/token/ERC721/ERC721.sol";
 import {Base64} from "@OpenZeppelin/contracts/utils/Base64.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {OracleLib} from "./libraries/OracleLib.sol";
 import {Strings} from "@OpenZeppelin/contracts/utils/Strings.sol";
 import {ReentrancyGuard} from "@OpenZeppelin/contracts/security/ReentrancyGuard.sol";
 import {console} from "forge-std/console.sol";
@@ -17,9 +19,10 @@ import {console} from "forge-std/console.sol";
  * - Allowing the owner of the token to put the token up for auction
  */
 contract EProp is ERC721, ReentrancyGuard {
-    // A struct for maintaining property specifications
     using Strings for uint256;
+    using OracleLib for AggregatorV3Interface;
 
+    // A struct for maintaining property specifications
     struct PropSpec {
         uint256 length;
         uint256 width;
@@ -61,7 +64,10 @@ contract EProp is ERC721, ReentrancyGuard {
     mapping(uint256 => Offer[]) private s_tokenIdToOffers; // Mapping from token ID to offers for the token
     mapping(uint256 => uint256) private s_tokenIdTolastBidTime; // Mapping from token ID to the time of the last bid
 
+    uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
+    uint256 private constant USD_PRECISION = 1e36;
     address private immutable i_owner; // Owner of the contract
+    address private immutable i_priceFeed;
     uint256 private s_tokenCounter; // A counter for the tokens
     string private s_imageUri; // URI of the token image
 
@@ -94,9 +100,10 @@ contract EProp is ERC721, ReentrancyGuard {
         _;
     }
 
-    constructor(string memory imageUri) ERC721("eProp", "EPR") {
+    constructor(string memory imageUri, address priceFeed) ERC721("eProp", "EPR") {
         i_owner = msg.sender;
         s_imageUri = imageUri;
+        i_priceFeed = priceFeed;
     }
 
     //  ========================= Token functions =========================
@@ -417,6 +424,21 @@ contract EProp is ERC721, ReentrancyGuard {
     }
 
     //  =========================  Getter functions  =========================
+
+    function getUsdPriceToWei(uint256 usdPrice) public view returns (uint256) {
+        (, int256 usdToEthprice,,,) = AggregatorV3Interface(i_priceFeed).staleCheckLatestRoundData();
+        return ((usdPrice * USD_PRECISION) / (uint256(usdToEthprice) * ADDITIONAL_FEED_PRECISION));
+    }
+
+    function getTokenPriceToUsd(uint256 tokenId) public view returns (uint256) {
+        if (s_tokenIdToBuyer[tokenId] == msg.sender || tokenIdToIsListed[tokenId] || msg.sender == ownerOf(tokenId)) {
+            (, int256 price,,,) = AggregatorV3Interface(i_priceFeed).staleCheckLatestRoundData();
+            uint256 tokenPrice = s_tokenIdToPrice[tokenId];
+            return ((uint256(price) * ADDITIONAL_FEED_PRECISION) * tokenPrice) / USD_PRECISION;
+        } else {
+            revert EProp__TokenNotForSaleForThisAddressOrListed();
+        }
+    }
 
     /**
      * @dev Returns the price of the 'tokenId' token to the buyer, owner, or everyone if the token is listed.
