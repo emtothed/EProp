@@ -1,6 +1,6 @@
 <img src="img/LOGO.svg" alt="EProp" height="100px">
 
-## you can find the verified contract on etherscan.com and test its functionality here: [verified contract on etherscan.com](https://sepolia.etherscan.io/address/0xda39ab6c5f69c54e3a281640b7eebe86bab46435)
+## you can find the verified contract on etherscan.com and test its functionality here: [verified contract on etherscan.com](https://sepolia.etherscan.io/address/0xee519a1b66186328e3b7279b6a9698ca3bf46122)
 
 
 # EProp
