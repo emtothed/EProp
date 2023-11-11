@@ -5,7 +5,14 @@
 
 # EProp
 
-**EProp is an ERC721-based property ownership system with its token and marketplace features.**
+**EProp is an ERC721-based property ownership system with its token and marketplace features such as:**
+
+  - Allowing the owner of the token to list and unlist the token for sale 
+   - Allowing the owner of the token to set an address as a buyer with a cerain price 
+   - Allowing users to make an offer for a token 
+   - Allowing the owner of the token to put the token up for auction
+
+
 # Getting Started
 
 ## Requirements
@@ -103,4 +110,3 @@ make sepoliaMint
 
 ### Email : md.vahm@gmail.com
 # Thank you!
-
